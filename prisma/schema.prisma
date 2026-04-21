@@ -1,0 +1,244 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  ADMIN
+  OPERATOR
+  VIEWER
+}
+
+enum DocumentType {
+  DUA
+  DVD
+  LAME
+  FACTURA
+  CMR
+  PACKING_LIST
+  INTRASTAT
+  OTRO
+}
+
+enum DocumentStatus {
+  PENDIENTE
+  PROCESANDO
+  PROCESADO
+  ERROR
+  VALIDADO
+}
+
+enum DUAStatus {
+  BORRADOR
+  PENDIENTE
+  EN_TRAMITE
+  DESPACHADO
+  RECHAZADO
+  CANCELADO
+}
+
+enum MovementType {
+  ENTRADA
+  SALIDA
+  AJUSTE
+  RESERVA
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  role      UserRole @default(OPERATOR)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  documents Document[]
+  duas      DUA[]
+  movements DepositMovement[]
+  aiLogs    AILog[]
+
+  @@map("users")
+}
+
+model Configuration {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  updatedAt DateTime @updatedAt
+
+  @@map("configurations")
+}
+
+model Document {
+  id            String         @id @default(cuid())
+  filename      String
+  originalName  String
+  mimeType      String
+  size          Int
+  type          DocumentType   @default(OTRO)
+  status        DocumentStatus @default(PENDIENTE)
+  rawText       String?
+  extractedData Json?
+  errorMessage  String?
+  userId        String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  user       User?             @relation(fields: [userId], references: [id])
+  duas       DUA[]
+  lames      LAME[]
+  aiLogs     AILog[]
+  intrastats IntrastatRecord[]
+
+  @@map("documents")
+}
+
+model DUA {
+  id               String    @id @default(cuid())
+  numeroDUA        String    @unique
+  cliente          String
+  mercancia        String
+  descripcion      String?
+  unidades         Int       @default(0)
+  peso             Float?
+  valor            Float?
+  moneda           String    @default("EUR")
+  regimen          String?
+  paisOrigen       String?
+  paisDestino      String?
+  aduanaEntrada    String?
+  aduanaSalida     String?
+  matricula        String?
+  bastidor         String?
+  instrucciones    String?
+  status           DUAStatus @default(BORRADOR)
+  fechaDespacho    DateTime?
+  fechaValidacion  DateTime?
+  notas            String?
+  documentId       String?
+  userId           String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  document  Document?         @relation(fields: [documentId], references: [id])
+  user      User?             @relation(fields: [userId], references: [id])
+  movements DepositMovement[]
+
+  @@map("duas")
+}
+
+model DepositStock {
+  id                  String   @id @default(cuid())
+  referencia          String   @unique
+  descripcion         String
+  producto            String
+  unidadesTotal       Int      @default(0)
+  unidadesDisponibles Int      @default(0)
+  unidadesReservadas  Int      @default(0)
+  unidadesDespachadas Int      @default(0)
+  ubicacion           String?
+  lote                String?
+  activo              Boolean  @default(true)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  movements DepositMovement[]
+  lames     LAME[]
+
+  @@map("deposit_stocks")
+}
+
+model DepositMovement {
+  id              String       @id @default(cuid())
+  tipo            MovementType
+  referencia      String?
+  producto        String
+  unidades        Int
+  unidadesAntes   Int
+  unidadesDespues Int
+  motivo          String?
+  instrucciones   String?
+  duaId           String?
+  stockId         String?
+  userId          String?
+  createdAt       DateTime     @default(now())
+
+  dua   DUA?          @relation(fields: [duaId], references: [id])
+  stock DepositStock? @relation(fields: [stockId], references: [id])
+  user  User?         @relation(fields: [userId], references: [id])
+
+  @@map("deposit_movements")
+}
+
+model LAME {
+  id            String       @id @default(cuid())
+  numeroLAME    String       @unique
+  tipo          MovementType @default(ENTRADA)
+  referencia    String?
+  producto      String
+  descripcion   String?
+  unidades      Int          @default(0)
+  peso          Float?
+  ubicacion     String?
+  instrucciones String?
+  fecha         DateTime     @default(now())
+  documentId    String?
+  stockId       String?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  document Document?     @relation(fields: [documentId], references: [id])
+  stock    DepositStock? @relation(fields: [stockId], references: [id])
+
+  @@map("lames")
+}
+
+model IntrastatRecord {
+  id               String   @id @default(cuid())
+  periodo          String
+  paisOrigen       String?
+  paisDestino      String?
+  codigoMercancia  String?
+  descripcion      String?
+  unidades         Int      @default(0)
+  peso             Float?
+  pesoEstimado     Float?
+  valorEstadistico Float?
+  valorFactura     Float?
+  moneda           String   @default("EUR")
+  expedidor        String?
+  destinatario     String?
+  tipoTransaccion  String?
+  modoTransporte   String?
+  documentId       String?
+  exportado        Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  document Document? @relation(fields: [documentId], references: [id])
+
+  @@map("intrastat_records")
+}
+
+model AILog {
+  id           String   @id @default(cuid())
+  tipo         String
+  prompt       String
+  response     String?
+  tokensInput  Int?
+  tokensOutput Int?
+  duracion     Int?
+  error        String?
+  documentId   String?
+  userId       String?
+  createdAt    DateTime @default(now())
+
+  document Document? @relation(fields: [documentId], references: [id])
+  user     User?     @relation(fields: [userId], references: [id])
+
+  @@map("ai_logs")
+}

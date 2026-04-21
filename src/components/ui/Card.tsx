@@ -1,0 +1,34 @@
+"use client";
+import { cn } from "@/lib/utils";
+
+interface CardProps {
+  children: React.ReactNode;
+  className?: string;
+  glow?: boolean;
+}
+
+export function Card({ children, className, glow }: CardProps) {
+  return (
+    <div
+      className={cn(
+        "relative rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm",
+        glow && "shadow-lg shadow-cyan-500/5",
+        className
+      )}
+    >
+      {children}
+    </div>
+  );
+}
+
+export function CardHeader({ children, className }: { children: React.ReactNode; className?: string }) {
+  return <div className={cn("px-6 py-4 border-b border-white/10", className)}>{children}</div>;
+}
+
+export function CardTitle({ children, className }: { children: React.ReactNode; className?: string }) {
+  return <h3 className={cn("text-lg font-semibold text-white", className)}>{children}</h3>;
+}
+
+export function CardContent({ children, className }: { children: React.ReactNode; className?: string }) {
+  return <div className={cn("px-6 py-4", className)}>{children}</div>;
+}
