@@ -1,0 +1,1108 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AduanaApp - Gestión Aduanera</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+:root {
+  --bg: #080b12;
+  --surface: rgba(255,255,255,0.05);
+  --border: rgba(255,255,255,0.08);
+  --accent: #06b6d4;
+  --accent-dim: rgba(6,182,212,0.15);
+  --text: #e2e8f0;
+  --text-muted: #94a3b8;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --error: #ef4444;
+  --info: #06b6d4;
+  --sidebar-w: 256px;
+  --header-h: 60px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+a{color:inherit;text-decoration:none}
+button{cursor:pointer;font-family:inherit}
+input,select,textarea{font-family:inherit}
+
+/* SIDEBAR */
+#sidebar{position:fixed;top:0;left:0;width:var(--sidebar-w);height:100vh;background:rgba(8,11,18,0.95);border-right:1px solid var(--border);backdrop-filter:blur(20px);z-index:100;display:flex;flex-direction:column;overflow-y:auto}
+.sidebar-logo{padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px}
+.logo-icon{width:36px;height:36px;background:linear-gradient(135deg,var(--accent),#0891b2);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px}
+.logo-text{font-size:16px;font-weight:700;color:var(--text)}
+.logo-sub{font-size:11px;color:var(--text-muted)}
+.sidebar-nav{padding:16px 12px;flex:1}
+.nav-section{font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em;padding:8px 12px 4px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;font-size:14px;color:var(--text-muted);transition:all .2s;margin-bottom:2px;cursor:pointer;border:none;background:none;width:100%;text-align:left}
+.nav-item:hover{background:var(--surface);color:var(--text)}
+.nav-item.active{background:var(--accent-dim);color:var(--accent);border:1px solid rgba(6,182,212,0.2)}
+.nav-item svg{flex-shrink:0;width:18px;height:18px}
+.nav-badge{margin-left:auto;background:var(--error);color:#fff;border-radius:10px;padding:1px 6px;font-size:10px;font-weight:700;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}
+.sidebar-footer{padding:16px;border-top:1px solid var(--border)}
+.user-card{display:flex;align-items:center;gap:10px;padding:10px;background:var(--surface);border-radius:8px}
+.avatar{width:32px;height:32px;background:linear-gradient(135deg,var(--accent),#0891b2);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700}
+.user-info{flex:1;min-width:0}
+.user-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.user-role{font-size:11px;color:var(--text-muted)}
+
+/* HEADER */
+#header{position:fixed;top:0;left:var(--sidebar-w);right:0;height:var(--header-h);background:rgba(8,11,18,0.9);border-bottom:1px solid var(--border);backdrop-filter:blur(20px);z-index:99;display:flex;align-items:center;padding:0 24px;gap:16px}
+.header-title{font-size:18px;font-weight:600;flex:1}
+.header-search{display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:6px 12px;width:240px}
+.header-search input{background:none;border:none;outline:none;color:var(--text);font-size:13px;width:100%}
+.header-search svg{color:var(--text-muted);flex-shrink:0}
+.header-btn{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:7px;color:var(--text-muted);display:flex;align-items:center;justify-content:center;transition:all .2s}
+.header-btn:hover{color:var(--text);border-color:var(--accent)}
+.notif-dot{width:8px;height:8px;background:var(--error);border-radius:50%;position:absolute;top:-2px;right:-2px}
+.header-btn-wrap{position:relative}
+
+/* MAIN */
+#main{margin-left:var(--sidebar-w);margin-top:var(--header-h);padding:24px;min-height:calc(100vh - var(--header-h));overflow-y:auto}
+.section{display:none}
+.section.active{display:block}
+
+/* CARDS */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;backdrop-filter:blur(10px)}
+.card-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.card-title{font-size:15px;font-weight:600}
+.card-body{padding:20px}
+
+/* KPI GRID */
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
+.kpi-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;position:relative;overflow:hidden;transition:transform .2s,border-color .2s}
+.kpi-card:hover{transform:translateY(-2px);border-color:rgba(6,182,212,0.3)}
+.kpi-card::before{content:'';position:absolute;top:0;right:0;width:60px;height:60px;background:radial-gradient(circle,rgba(6,182,212,0.1),transparent);border-radius:0 12px 0 100%}
+.kpi-label{font-size:12px;color:var(--text-muted);margin-bottom:8px;font-weight:500}
+.kpi-value{font-size:28px;font-weight:700;color:var(--text)}
+.kpi-sub{font-size:12px;color:var(--text-muted);margin-top:4px}
+.kpi-icon{position:absolute;top:16px;right:16px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;border-radius:8px;background:var(--accent-dim);color:var(--accent)}
+
+/* CHARTS */
+.charts-grid{display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:24px}
+.charts-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px}
+
+/* TABLES */
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse}
+th{font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;padding:10px 16px;text-align:left;border-bottom:1px solid var(--border)}
+td{padding:12px 16px;font-size:14px;border-bottom:1px solid rgba(255,255,255,0.04)}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(255,255,255,0.02)}
+.mono{font-family:monospace;font-size:13px;color:var(--accent)}
+
+/* BADGES */
+.badge{display:inline-flex;align-items:center;padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.badge-success{background:rgba(16,185,129,0.15);color:#10b981;border:1px solid rgba(16,185,129,0.2)}
+.badge-warning{background:rgba(245,158,11,0.15);color:#f59e0b;border:1px solid rgba(245,158,11,0.2)}
+.badge-error{background:rgba(239,68,68,0.15);color:#ef4444;border:1px solid rgba(239,68,68,0.2)}
+.badge-info{background:rgba(6,182,212,0.15);color:#06b6d4;border:1px solid rgba(6,182,212,0.2)}
+.badge-neutral{background:rgba(148,163,184,0.15);color:#94a3b8;border:1px solid rgba(148,163,184,0.2)}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:500;border:none;transition:all .2s}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-primary:hover{background:#0891b2}
+.btn-outline{background:transparent;border:1px solid var(--border);color:var(--text-muted)}
+.btn-outline:hover{border-color:var(--accent);color:var(--accent)}
+.btn-ghost{background:transparent;border:none;color:var(--text-muted);padding:6px 10px}
+.btn-ghost:hover{color:var(--accent)}
+.btn-sm{padding:5px 10px;font-size:12px}
+.btn-danger{background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.2);color:#ef4444}
+.btn-danger:hover{background:rgba(239,68,68,0.25)}
+
+/* FILTERS */
+.filter-row{display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+.filter-pill{padding:6px 14px;border-radius:20px;font-size:12px;font-weight:500;border:1px solid var(--border);background:transparent;color:var(--text-muted);cursor:pointer;transition:all .2s}
+.filter-pill:hover,.filter-pill.active{background:var(--accent-dim);color:var(--accent);border-color:rgba(6,182,212,0.3)}
+.search-box{display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:7px 12px;flex:1;max-width:280px}
+.search-box input{background:none;border:none;outline:none;color:var(--text);font-size:13px;width:100%}
+
+/* MODALS */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:500;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+.modal-overlay.open{display:flex}
+.modal{background:#0d1117;border:1px solid var(--border);border-radius:16px;width:min(600px,90vw);max-height:85vh;overflow-y:auto;animation:fadeIn .2s}
+.modal-lg{width:min(760px,90vw)}
+@keyframes fadeIn{from{opacity:0;transform:translateY(-16px)}to{opacity:1;transform:translateY(0)}}
+.modal-header{padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.modal-title{font-size:16px;font-weight:600}
+.modal-close{background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;line-height:1;padding:4px 8px;border-radius:6px}
+.modal-close:hover{background:var(--surface);color:var(--text)}
+.modal-body{padding:24px}
+.modal-footer{padding:16px 24px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:10px}
+
+/* FORMS */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.form-group{display:flex;flex-direction:column;gap:6px}
+.form-group.full{grid-column:1/-1}
+label{font-size:12px;font-weight:500;color:var(--text-muted)}
+.form-control{background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--text);font-size:13px;outline:none;transition:border-color .2s}
+.form-control:focus{border-color:var(--accent)}
+.form-control option{background:#0d1117}
+textarea.form-control{resize:vertical;min-height:80px}
+
+/* TABS */
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--border);margin-bottom:24px}
+.tab{padding:10px 18px;font-size:14px;font-weight:500;color:var(--text-muted);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;transition:all .2s}
+.tab:hover{color:var(--text)}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.tab-panel{display:none}
+.tab-panel.active{display:block}
+
+/* PROGRESS */
+.progress-bar{background:rgba(255,255,255,0.08);border-radius:4px;height:6px;overflow:hidden}
+.progress-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--accent),#0891b2);transition:width .4s}
+.progress-fill.warning{background:linear-gradient(90deg,var(--warning),#d97706)}
+.progress-fill.error{background:linear-gradient(90deg,var(--error),#dc2626)}
+
+/* DRAG DROP */
+.drop-zone{border:2px dashed var(--border);border-radius:12px;padding:40px;text-align:center;cursor:pointer;transition:all .2s;color:var(--text-muted)}
+.drop-zone:hover,.drop-zone.drag-over{border-color:var(--accent);background:var(--accent-dim);color:var(--accent)}
+
+/* ACTIVITY */
+.activity-list{display:flex;flex-direction:column;gap:12px}
+.activity-item{display:flex;align-items:center;gap:12px;padding:12px;background:rgba(255,255,255,0.02);border-radius:8px}
+.activity-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.activity-text{font-size:13px;flex:1}
+.activity-time{font-size:11px;color:var(--text-muted)}
+
+/* STATUS ROW */
+.status-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px}
+.stat-val{font-size:22px;font-weight:700}
+.stat-label{font-size:12px;color:var(--text-muted);margin-top:2px}
+
+/* QUICK ACTIONS */
+.quick-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.qa-btn{background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:left;color:var(--text);font-size:13px;transition:all .2s;display:flex;align-items:center;gap:10px}
+.qa-btn:hover{background:var(--accent-dim);border-color:rgba(6,182,212,0.3);color:var(--accent)}
+
+/* STATUS SELECT */
+.status-select{background:transparent;border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:12px;color:var(--text);cursor:pointer;outline:none}
+
+/* SYSTEM STATUS */
+.sys-status{display:flex;flex-direction:column;gap:8px}
+.sys-item{display:flex;align-items:center;justify-content:space-between;font-size:13px}
+.sys-dot{width:8px;height:8px;border-radius:50%;background:var(--success);box-shadow:0 0 6px var(--success)}
+.sys-dot.warn{background:var(--warning);box-shadow:0 0 6px var(--warning)}
+
+/* INLINE EDIT */
+.inline-select{background:transparent;border:none;outline:none;color:inherit;font-size:inherit;cursor:pointer;padding:2px 4px;border-radius:4px}
+
+/* RESPONSIVE UTIL */
+.flex{display:flex}.items-center{align-items:center}.justify-between{justify-content:space-between}.gap-2{gap:8px}.gap-3{gap:12px}.mb-4{margin-bottom:16px}.mb-6{margin-bottom:24px}.mt-2{margin-top:8px}.text-muted{color:var(--text-muted)}.text-sm{font-size:13px}.font-mono{font-family:monospace}.text-accent{color:var(--accent)}.text-success{color:var(--success)}.text-warning{color:var(--warning)}.text-error{color:var(--error)}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+
+/* SECTION PAGE HEADER */
+.page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px}
+.page-title{font-size:22px;font-weight:700}
+.page-sub{font-size:14px;color:var(--text-muted);margin-top:2px}
+
+/* INFO GRID */
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.info-item{background:rgba(255,255,255,0.03);border-radius:8px;padding:12px}
+.info-key{font-size:11px;color:var(--text-muted);margin-bottom:4px}
+.info-val{font-size:14px;font-weight:500}
+
+/* AI BADGE */
+.ai-badge{display:inline-flex;align-items:center;gap:4px;background:linear-gradient(135deg,rgba(6,182,212,0.2),rgba(139,92,246,0.2));border:1px solid rgba(6,182,212,0.3);border-radius:20px;padding:3px 10px;font-size:11px;color:var(--accent);font-weight:600}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.1);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,0.2)}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside id="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-icon">⚓</div>
+    <div>
+      <div class="logo-text">AduanaApp</div>
+      <div class="logo-sub">Gestión Aduanera</div>
+    </div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-section">Principal</div>
+    <button class="nav-item active" onclick="navigate('dashboard')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      Dashboard
+    </button>
+    <button class="nav-item" onclick="navigate('documentos')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      Documentos
+      <span class="nav-badge">8</span>
+    </button>
+    <button class="nav-item" onclick="navigate('duas')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+      DUAs
+    </button>
+    <div class="nav-section">Almacén</div>
+    <button class="nav-item" onclick="navigate('lame')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+      LAME/DVD
+    </button>
+    <button class="nav-item" onclick="navigate('deposito')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      Depósito
+      <span class="nav-badge">3</span>
+    </button>
+    <div class="nav-section">Comercio</div>
+    <button class="nav-item" onclick="navigate('intrastat')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+      Intrastat
+    </button>
+    <div class="nav-section">Sistema</div>
+    <button class="nav-item" onclick="navigate('config')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M20 12h-2M17.66 17.66l-1.41-1.41M12 20v-2M6.34 17.66l1.41-1.41M4 12H2M6.34 6.34L7.76 7.76M12 4V2"/></svg>
+      Configuración
+    </button>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="user-card">
+      <div class="avatar">AC</div>
+      <div class="user-info">
+        <div class="user-name">Admin User</div>
+        <div class="user-role">Administrador</div>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<!-- HEADER -->
+<header id="header">
+  <div class="header-title" id="headerTitle">Dashboard</div>
+  <div class="header-search">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+    <input type="text" placeholder="Buscar...">
+  </div>
+  <div class="header-btn-wrap">
+    <button class="header-btn">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      <div class="notif-dot"></div>
+    </button>
+  </div>
+  <button class="header-btn" onclick="navigate('config')">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M20 12h-2M17.66 17.66l-1.41-1.41M12 20v-2M6.34 17.66l1.41-1.41M4 12H2M6.34 6.34L7.76 7.76M12 4V2"/></svg>
+  </button>
+</header>
+
+<!-- MAIN -->
+<main id="main">
+
+<!-- ===== DASHBOARD ===== -->
+<section id="sec-dashboard" class="section active">
+  <div class="page-header mb-6">
+    <div>
+      <div class="page-title">Dashboard</div>
+      <div class="page-sub">Resumen operativo en tiempo real</div>
+    </div>
+    <div class="flex gap-2">
+      <button class="btn btn-outline btn-sm">Exportar</button>
+      <button class="btn btn-primary btn-sm">+ Nuevo DUA</button>
+    </div>
+  </div>
+  <div class="kpi-grid">
+    <div class="kpi-card"><div class="kpi-label">DUAs Pendientes</div><div class="kpi-value">12</div><div class="kpi-sub">↑ 3 desde ayer</div><div class="kpi-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div></div>
+    <div class="kpi-card"><div class="kpi-label">DUAs Despachados</div><div class="kpi-value text-success">87</div><div class="kpi-sub">↑ 12 este mes</div><div class="kpi-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg></div></div>
+    <div class="kpi-card"><div class="kpi-label">Depósitos Activos</div><div class="kpi-value">5</div><div class="kpi-sub">Capacidad 78%</div><div class="kpi-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></div></div>
+    <div class="kpi-card"><div class="kpi-label">Unidades Depósito</div><div class="kpi-value">1247</div><div class="kpi-sub">Stock disponible</div><div class="kpi-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg></div></div>
+    <div class="kpi-card"><div class="kpi-label">Discrepancias</div><div class="kpi-value text-error">3</div><div class="kpi-sub">Requieren revisión</div><div class="kpi-icon" style="background:rgba(239,68,68,0.1);color:var(--error)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div></div>
+    <div class="kpi-card"><div class="kpi-label">Docs Pendientes</div><div class="kpi-value text-warning">8</div><div class="kpi-sub">Procesamiento IA</div><div class="kpi-icon" style="background:rgba(245,158,11,0.1);color:var(--warning)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div></div>
+    <div class="kpi-card"><div class="kpi-label">Stock Total</div><div class="kpi-value">4580</div><div class="kpi-sub">Todas ubicaciones</div><div class="kpi-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg></div></div>
+    <div class="kpi-card"><div class="kpi-label">Movimientos Hoy</div><div class="kpi-value">23</div><div class="kpi-sub">↑ 5 vs ayer</div><div class="kpi-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg></div></div>
+  </div>
+
+  <div class="charts-grid">
+    <div class="card">
+      <div class="card-header"><span class="card-title">Actividad Mensual</span><span class="text-muted text-sm">Últimos 6 meses</span></div>
+      <div class="card-body"><canvas id="areaChart" height="200"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="card-title">Distribución Stock</span></div>
+      <div class="card-body" style="display:flex;align-items:center;justify-content:center"><canvas id="doughnutChart" height="200"></canvas></div>
+    </div>
+  </div>
+
+  <div class="charts-row">
+    <div class="card">
+      <div class="card-header"><span class="card-title">Movimientos Semanales</span><span class="text-muted text-sm">Entradas/Salidas</span></div>
+      <div class="card-body"><canvas id="barChart" height="180"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="card-title">Actividad Reciente</span></div>
+      <div class="card-body">
+        <div class="activity-list">
+          <div class="activity-item"><div class="activity-dot" style="background:var(--success)"></div><div class="activity-text">DUA-2024-0045 despachado correctamente</div><div class="activity-time">hace 12m</div></div>
+          <div class="activity-item"><div class="activity-dot" style="background:var(--warning)"></div><div class="activity-text">Discrepancia detectada en LAME-004</div><div class="activity-time">hace 35m</div></div>
+          <div class="activity-item"><div class="activity-dot" style="background:var(--info)"></div><div class="activity-text">Nuevo documento procesado con IA</div><div class="activity-time">hace 1h</div></div>
+          <div class="activity-item"><div class="activity-dot" style="background:var(--success)"></div><div class="activity-text">Stock BMW-X5 actualizado: +30 unidades</div><div class="activity-time">hace 2h</div></div>
+          <div class="activity-item"><div class="activity-dot" style="background:var(--error)"></div><div class="activity-text">Error en Intrastat Q4 — revisar datos</div><div class="activity-time">hace 3h</div></div>
+          <div class="activity-item"><div class="activity-dot" style="background:var(--info)"></div><div class="activity-text">DUA-2024-0048 creado como borrador</div><div class="activity-time">hace 4h</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-header"><span class="card-title">Acciones Rápidas</span></div>
+      <div class="card-body">
+        <div class="quick-actions">
+          <button class="qa-btn" onclick="navigate('duas');openModal('modalNuevoDUA')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>Nuevo DUA</button>
+          <button class="qa-btn" onclick="navigate('documentos');openModal('modalUpload')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>Subir Doc</button>
+          <button class="qa-btn" onclick="navigate('intrastat')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>Intrastat</button>
+          <button class="qa-btn" onclick="navigate('deposito')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Ver Depósito</button>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="card-title">Estado del Sistema</span></div>
+      <div class="card-body">
+        <div class="sys-status">
+          <div class="sys-item"><span>API Aduanas</span><div class="flex items-center gap-2"><div class="sys-dot"></div><span class="text-sm text-muted">Operativo</span></div></div>
+          <div class="sys-item"><span>Motor IA (Claude)</span><div class="flex items-center gap-2"><div class="sys-dot"></div><span class="text-sm text-muted">Operativo</span></div></div>
+          <div class="sys-item"><span>Base de Datos</span><div class="flex items-center gap-2"><div class="sys-dot"></div><span class="text-sm text-muted">Operativo</span></div></div>
+          <div class="sys-item"><span>OCR Engine</span><div class="flex items-center gap-2"><div class="sys-dot warn"></div><span class="text-sm text-muted">Degradado</span></div></div>
+          <div class="sys-item"><span>Exportación CSV</span><div class="flex items-center gap-2"><div class="sys-dot"></div><span class="text-sm text-muted">Operativo</span></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== DOCUMENTOS ===== -->
+<section id="sec-documentos" class="section">
+  <div class="page-header">
+    <div><div class="page-title">Documentos</div><div class="page-sub">Gestión y procesamiento de documentos aduaneros</div></div>
+    <button class="btn btn-primary" onclick="openModal('modalUpload')">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      Subir Documento
+    </button>
+  </div>
+  <div class="status-row mb-6">
+    <div class="stat-card"><div class="stat-val">24</div><div class="stat-label">Total documentos</div></div>
+    <div class="stat-card"><div class="stat-val text-warning">8</div><div class="stat-label">Pendientes</div></div>
+    <div class="stat-card"><div class="stat-val text-success">14</div><div class="stat-label">Procesados</div></div>
+    <div class="stat-card"><div class="stat-val text-error">2</div><div class="stat-label">Errores</div></div>
+  </div>
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Todos los Documentos</span>
+      <div class="flex gap-2">
+        <div class="search-box"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg><input type="text" placeholder="Buscar documento..."></div>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table id="docsTable">
+        <thead><tr><th>Nombre</th><th>Tipo</th><th>Estado</th><th>Tamaño</th><th>Fecha</th><th>Acciones</th></tr></thead>
+        <tbody id="docsBody"></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ===== DUAS ===== -->
+<section id="sec-duas" class="section">
+  <div class="page-header">
+    <div><div class="page-title">DUAs</div><div class="page-sub">Documentos Únicos Administrativos</div></div>
+    <button class="btn btn-primary" onclick="openModal('modalNuevoDUA')">+ Nuevo DUA</button>
+  </div>
+  <div class="filter-row mb-4">
+    <button class="filter-pill active" onclick="filterDUAs('all',this)">Todos</button>
+    <button class="filter-pill" onclick="filterDUAs('DESPACHADO',this)">Despachados</button>
+    <button class="filter-pill" onclick="filterDUAs('EN_TRAMITE',this)">En Trámite</button>
+    <button class="filter-pill" onclick="filterDUAs('PENDIENTE',this)">Pendientes</button>
+    <button class="filter-pill" onclick="filterDUAs('BORRADOR',this)">Borradores</button>
+    <div class="search-box" style="margin-left:auto"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg><input type="text" placeholder="Buscar DUA..." oninput="searchDUAs(this.value)"></div>
+  </div>
+  <div class="card">
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Número DUA</th><th>Cliente</th><th>Mercancía</th><th>Unidades</th><th>Valor</th><th>Estado</th><th>Fecha</th><th>Acciones</th></tr></thead>
+        <tbody id="duasBody"></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ===== LAME ===== -->
+<section id="sec-lame" class="section">
+  <div class="page-header">
+    <div><div class="page-title">LAME / DVD</div><div class="page-sub">Listados de Albaranes y Movimientos de Entrada</div></div>
+    <button class="btn btn-primary" onclick="openModal('modalNuevoLAME')">+ Nuevo LAME</button>
+  </div>
+  <div class="grid-3 mb-6">
+    <div class="kpi-card"><div class="kpi-label">Entradas</div><div class="kpi-value text-success">+85</div><div class="kpi-sub">Este periodo</div></div>
+    <div class="kpi-card"><div class="kpi-label">Salidas</div><div class="kpi-value text-error">-25</div><div class="kpi-sub">Este periodo</div></div>
+    <div class="kpi-card"><div class="kpi-label">Stock Neto</div><div class="kpi-value">60</div><div class="kpi-sub">Diferencia neta</div></div>
+  </div>
+  <div class="filter-row">
+    <button class="filter-pill active" onclick="filterLAME('all',this)">Todos</button>
+    <button class="filter-pill" onclick="filterLAME('ENTRADA',this)">Entrada</button>
+    <button class="filter-pill" onclick="filterLAME('SALIDA',this)">Salida</button>
+    <button class="filter-pill" onclick="filterLAME('AJUSTE',this)">Ajuste</button>
+    <button class="filter-pill" onclick="filterLAME('RESERVA',this)">Reserva</button>
+    <div class="search-box" style="margin-left:auto"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg><input type="text" placeholder="Buscar LAME..."></div>
+  </div>
+  <div class="card">
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Número</th><th>Tipo</th><th>Referencia</th><th>Producto</th><th>Unidades</th><th>Fecha</th><th>Estado</th><th>Acciones</th></tr></thead>
+        <tbody id="lameBody"></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ===== DEPOSITO ===== -->
+<section id="sec-deposito" class="section">
+  <div class="page-header">
+    <div><div class="page-title">Depósito</div><div class="page-sub">Control de stock en depósito aduanero</div></div>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:24px">
+    <div class="stat-card"><div class="stat-val">583</div><div class="stat-label">Total unidades</div></div>
+    <div class="stat-card"><div class="stat-val text-success">57</div><div class="stat-label">Disponibles</div></div>
+    <div class="stat-card"><div class="stat-val text-warning">15</div><div class="stat-label">Reservadas</div></div>
+    <div class="stat-card"><div class="stat-val text-success">30</div><div class="stat-label">Despachadas</div></div>
+    <div class="stat-card"><div class="stat-val text-error" style="animation:pulse 2s infinite">2</div><div class="stat-label">Alertas</div></div>
+  </div>
+  <div class="filter-row">
+    <div class="search-box"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg><input type="text" placeholder="Buscar stock..."></div>
+    <button class="filter-pill active">Todos</button>
+    <button class="filter-pill">Disponible</button>
+    <button class="filter-pill">Agotado</button>
+    <button class="filter-pill">Reservado</button>
+  </div>
+  <div class="card">
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Referencia</th><th>Descripción</th><th>Disponible / Total</th><th>Ocupación</th><th>Estado</th><th>DUA</th><th>Acciones</th></tr></thead>
+        <tbody id="depositoBody"></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ===== INTRASTAT ===== -->
+<section id="sec-intrastat" class="section">
+  <div class="page-header">
+    <div><div class="page-title">Intrastat</div><div class="page-sub">Declaraciones estadísticas de comercio intracomunitario</div></div>
+    <div class="flex gap-2">
+      <button class="btn btn-outline btn-sm" onclick="exportIntrastatCSV()">Exportar CSV</button>
+      <button class="btn btn-outline btn-sm" onclick="openModal('modalOCR')"><span class="ai-badge">IA</span> Extraer con IA</button>
+      <button class="btn btn-primary btn-sm" onclick="openModal('modalNuevoIntrastat')">+ Nuevo Registro</button>
+    </div>
+  </div>
+  <div class="status-row mb-6">
+    <div class="stat-card"><div class="stat-val">47</div><div class="stat-label">Total registros</div></div>
+    <div class="stat-card"><div class="stat-val">€4.2M</div><div class="stat-label">Valor estadístico</div></div>
+    <div class="stat-card"><div class="stat-val">3.8T</div><div class="stat-label">Peso total (kg)</div></div>
+    <div class="stat-card"><div class="stat-val">2847</div><div class="stat-label">Unidades totales</div></div>
+  </div>
+  <div class="filter-row">
+    <select class="form-control" style="width:auto;padding:6px 12px">
+      <option>2024 Q4</option><option>2024 Q3</option><option>2024 Q2</option><option>2024 Q1</option>
+    </select>
+    <div class="search-box"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg><input type="text" placeholder="Buscar por NC8, descripción..."></div>
+  </div>
+  <div class="card">
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Período</th><th>Flujo</th><th>Código NC8</th><th>Descripción</th><th>Unidades</th><th>Valor Est.</th><th>Expedidor</th><th>Estado</th><th>Acciones</th></tr></thead>
+        <tbody id="intrastatBody"></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ===== CONFIGURACION ===== -->
+<section id="sec-config" class="section">
+  <div class="page-header">
+    <div><div class="page-title">Configuración</div><div class="page-sub">Ajustes del sistema y parámetros de operación</div></div>
+  </div>
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('tabAPI',this)">API y Claude</button>
+    <button class="tab" onclick="switchTab('tabOCR',this)">OCR</button>
+    <button class="tab" onclick="switchTab('tabReglas',this)">Reglas</button>
+    <button class="tab" onclick="switchTab('tabUsuarios',this)">Usuarios</button>
+  </div>
+  <div id="tabAPI" class="tab-panel active">
+    <div class="card mb-4">
+      <div class="card-header"><span class="card-title">Configuración Claude AI</span><span class="ai-badge">Powered by Claude</span></div>
+      <div class="card-body">
+        <div class="form-grid">
+          <div class="form-group">
+            <label>API Key</label>
+            <input type="password" class="form-control" value="sk-ant-••••••••••••••••••••" placeholder="sk-ant-...">
+          </div>
+          <div class="form-group">
+            <label>Modelo</label>
+            <select class="form-control">
+              <option>claude-opus-4-5</option>
+              <option selected>claude-sonnet-4-5</option>
+              <option>claude-haiku-4-5</option>
+            </select>
+          </div>
+          <div class="form-group full">
+            <label>Endpoint base</label>
+            <input type="text" class="form-control" value="https://api.anthropic.com/v1">
+          </div>
+        </div>
+        <div class="flex gap-2 mt-2" style="margin-top:16px">
+          <button class="btn btn-outline" onclick="alert('Conexión verificada ✓')">Probar conexión</button>
+          <button class="btn btn-primary" onclick="alert('Configuración guardada')">Guardar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="tabOCR" class="tab-panel">
+    <div class="card mb-4">
+      <div class="card-header"><span class="card-title">Configuración OCR</span></div>
+      <div class="card-body">
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Tokens máximos</label>
+            <input type="number" class="form-control" value="4096">
+          </div>
+          <div class="form-group">
+            <label>Idioma por defecto</label>
+            <select class="form-control"><option>Español</option><option>Inglés</option><option>Francés</option></select>
+          </div>
+          <div class="form-group full">
+            <label>Prompt personalizado para extracción</label>
+            <textarea class="form-control" rows="4">Extrae los datos aduaneros del documento: número DUA, cliente, mercancía, unidades, valor, régimen, países de origen y destino. Devuelve en formato JSON.</textarea>
+          </div>
+        </div>
+        <button class="btn btn-primary" style="margin-top:16px" onclick="alert('Configuración OCR guardada')">Guardar</button>
+      </div>
+    </div>
+  </div>
+  <div id="tabReglas" class="tab-panel">
+    <div class="card mb-4">
+      <div class="card-header"><span class="card-title">Reglas del Sistema</span></div>
+      <div class="card-body">
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Umbral alerta stock (%)</label>
+            <input type="number" class="form-control" value="20">
+          </div>
+          <div class="form-group">
+            <label>Régimen aduanero por defecto</label>
+            <select class="form-control"><option>4000 - Despacho libre práctica</option><option>7100 - Depósito aduanero</option><option>2100 - Tránsito exterior</option></select>
+          </div>
+          <div class="form-group">
+            <label>Moneda por defecto</label>
+            <select class="form-control"><option>EUR</option><option>USD</option><option>GBP</option></select>
+          </div>
+          <div class="form-group">
+            <label>Auto-despacho</label>
+            <select class="form-control"><option>Desactivado</option><option>Con aprobación</option><option>Automático</option></select>
+          </div>
+        </div>
+        <button class="btn btn-primary" style="margin-top:16px" onclick="alert('Reglas guardadas')">Guardar reglas</button>
+      </div>
+    </div>
+  </div>
+  <div id="tabUsuarios" class="tab-panel">
+    <div class="card">
+      <div class="card-header"><span class="card-title">Usuarios del Sistema</span><button class="btn btn-primary btn-sm">+ Añadir usuario</button></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Usuario</th><th>Email</th><th>Rol</th><th>Estado</th><th>Último acceso</th></tr></thead>
+          <tbody>
+            <tr><td>Admin User</td><td>admin@aduana.es</td><td><span class="badge badge-error">Admin</span></td><td><span class="badge badge-success">Activo</span></td><td>Ahora</td></tr>
+            <tr><td>María García</td><td>mgarcia@aduana.es</td><td><span class="badge badge-info">Operador</span></td><td><span class="badge badge-success">Activo</span></td><td>hace 1h</td></tr>
+            <tr><td>Carlos López</td><td>clopez@aduana.es</td><td><span class="badge badge-info">Operador</span></td><td><span class="badge badge-success">Activo</span></td><td>hace 3h</td></tr>
+            <tr><td>Ana Martínez</td><td>amartinez@aduana.es</td><td><span class="badge badge-neutral">Visualizador</span></td><td><span class="badge badge-warning">Inactivo</span></td><td>hace 5d</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<!-- ===== MODALS ===== -->
+
+<!-- Upload Modal -->
+<div id="modalUpload" class="modal-overlay" onclick="closeOnBackdrop(event,'modalUpload')">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Subir Documento</span>
+      <button class="modal-close" onclick="closeModal('modalUpload')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()" ondragover="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="handleDrop(event)">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom:12px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        <div style="font-size:15px;font-weight:500;margin-bottom:4px">Arrastra archivos aquí</div>
+        <div style="font-size:13px">o haz clic para seleccionar</div>
+        <div style="font-size:11px;margin-top:8px">PDF, XML, XLSX — máx. 50MB</div>
+      </div>
+      <input type="file" id="fileInput" style="display:none" onchange="handleFileSelect(this)">
+      <div id="fileInfo" style="display:none;margin-top:12px;padding:12px;background:var(--surface);border-radius:8px;font-size:13px"></div>
+      <div class="form-group" style="margin-top:16px">
+        <label>Tipo de documento</label>
+        <select class="form-control" id="docType">
+          <option>DUA</option><option>Factura Comercial</option><option>Conocimiento Embarque</option><option>Certificado Origen</option><option>Packing List</option><option>LAME</option>
+        </select>
+      </div>
+      <div style="margin-top:16px;padding:12px;background:var(--accent-dim);border:1px solid rgba(6,182,212,0.2);border-radius:8px;display:flex;align-items:center;gap:10px">
+        <span class="ai-badge">IA</span>
+        <span style="font-size:13px">Claude AI extraerá automáticamente los datos del documento</span>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modalUpload')">Cancelar</button>
+      <button class="btn btn-primary" onclick="processDoc()">Procesar con Claude AI</button>
+    </div>
+  </div>
+</div>
+
+<!-- Doc Detail Modal -->
+<div id="modalDocDetail" class="modal-overlay" onclick="closeOnBackdrop(event,'modalDocDetail')">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Datos Extraídos</span>
+      <button class="modal-close" onclick="closeModal('modalDocDetail')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="ai-badge" style="margin-bottom:16px">Procesado con Claude AI</div>
+      <div class="info-grid" id="docDetailGrid"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modalDocDetail')">Cerrar</button>
+      <button class="btn btn-primary">Importar datos</button>
+    </div>
+  </div>
+</div>
+
+<!-- Nuevo DUA Modal -->
+<div id="modalNuevoDUA" class="modal-overlay" onclick="closeOnBackdrop(event,'modalNuevoDUA')">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <span class="modal-title" id="duaModalTitle">Nuevo DUA</span>
+      <button class="modal-close" onclick="closeModal('modalNuevoDUA')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group"><label>Número DUA</label><input type="text" class="form-control" id="f_numeroDUA" placeholder="DUA-2024-XXXX"></div>
+        <div class="form-group"><label>Estado</label><select class="form-control" id="f_estadoDUA"><option>BORRADOR</option><option>PENDIENTE</option><option>EN_TRAMITE</option><option>DESPACHADO</option></select></div>
+        <div class="form-group"><label>Cliente</label><input type="text" class="form-control" id="f_cliente" placeholder="Nombre empresa"></div>
+        <div class="form-group"><label>Mercancía</label><input type="text" class="form-control" id="f_mercancia" placeholder="Descripción mercancía"></div>
+        <div class="form-group"><label>Unidades</label><input type="number" class="form-control" id="f_unidades"></div>
+        <div class="form-group"><label>Valor (€)</label><input type="text" class="form-control" id="f_valor" placeholder="0.00"></div>
+        <div class="form-group"><label>Régimen Aduanero</label><select class="form-control" id="f_regimen"><option>4000 - Despacho libre práctica</option><option>7100 - Depósito aduanero</option><option>2100 - Tránsito exterior</option><option>5100 - Perfeccionamiento activo</option></select></div>
+        <div class="form-group"><label>Moneda</label><select class="form-control" id="f_moneda"><option>EUR</option><option>USD</option><option>GBP</option></select></div>
+        <div class="form-group"><label>País Origen</label><input type="text" class="form-control" id="f_paisOrigen" placeholder="DE, FR, US..."></div>
+        <div class="form-group"><label>País Destino</label><input type="text" class="form-control" id="f_paisDestino" placeholder="ES, FR..."></div>
+        <div class="form-group"><label>Matrícula</label><input type="text" class="form-control" id="f_matricula"></div>
+        <div class="form-group"><label>Bastidor / VIN</label><input type="text" class="form-control" id="f_bastidor"></div>
+        <div class="form-group full"><label>Instrucciones especiales</label><textarea class="form-control" id="f_instrucciones" rows="3"></textarea></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modalNuevoDUA')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveDUA()">Guardar DUA</button>
+    </div>
+  </div>
+</div>
+
+<!-- Nuevo LAME Modal -->
+<div id="modalNuevoLAME" class="modal-overlay" onclick="closeOnBackdrop(event,'modalNuevoLAME')">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <span class="modal-title">Nuevo LAME</span>
+      <button class="modal-close" onclick="closeModal('modalNuevoLAME')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group"><label>Número LAME</label><input type="text" class="form-control" id="fl_numero" placeholder="LAME-XXX"></div>
+        <div class="form-group"><label>Tipo</label><select class="form-control" id="fl_tipo"><option>ENTRADA</option><option>SALIDA</option><option>AJUSTE</option><option>RESERVA</option></select></div>
+        <div class="form-group"><label>Referencia</label><input type="text" class="form-control" id="fl_referencia"></div>
+        <div class="form-group"><label>Fecha</label><input type="date" class="form-control" id="fl_fecha"></div>
+        <div class="form-group"><label>Producto</label><input type="text" class="form-control" id="fl_producto"></div>
+        <div class="form-group"><label>Unidades</label><input type="number" class="form-control" id="fl_unidades"></div>
+        <div class="form-group"><label>Peso (kg)</label><input type="number" class="form-control" id="fl_peso"></div>
+        <div class="form-group"><label>Ubicación</label><input type="text" class="form-control" id="fl_ubicacion" placeholder="Nave A, Zona 3..."></div>
+        <div class="form-group full"><label>Descripción</label><input type="text" class="form-control" id="fl_descripcion"></div>
+        <div class="form-group full"><label>Instrucciones</label><textarea class="form-control" id="fl_instrucciones" rows="2"></textarea></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modalNuevoLAME')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveLAME()">Guardar LAME</button>
+    </div>
+  </div>
+</div>
+
+<!-- Despacho Modal -->
+<div id="modalDespacho" class="modal-overlay" onclick="closeOnBackdrop(event,'modalDespacho')">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Despachar Stock</span>
+      <button class="modal-close" onclick="closeModal('modalDespacho')">×</button>
+    </div>
+    <div class="modal-body">
+      <div id="despachoInfo" class="info-grid mb-4" style="margin-bottom:16px"></div>
+      <div class="form-group" style="margin-bottom:12px">
+        <label>Unidades a despachar</label>
+        <input type="number" class="form-control" id="despachoUnidades" oninput="validateDespacho()" min="1">
+      </div>
+      <div id="despachoWarning" style="display:none;padding:12px;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:8px;color:var(--error);font-size:13px;margin-bottom:12px">
+        ⚠ La cantidad supera el stock disponible. Por favor, verifica los datos.
+      </div>
+      <div style="background:var(--surface);border-radius:8px;padding:16px">
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em">Desglose de stock</div>
+        <div id="stockBreakdown" style="display:flex;flex-direction:column;gap:8px;font-size:13px"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modalDespacho')">Cancelar</button>
+      <button class="btn btn-primary" id="btnEjecutarDespacho" onclick="executeDespacho()">Ejecutar despacho</button>
+    </div>
+  </div>
+</div>
+
+<!-- OCR Modal -->
+<div id="modalOCR" class="modal-overlay" onclick="closeOnBackdrop(event,'modalOCR')">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Extracción IA — Intrastat</span>
+      <button class="modal-close" onclick="closeModal('modalOCR')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="drop-zone" onclick="document.getElementById('ocrInput').click()">
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom:10px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        <div>Sube un documento Intrastat para procesarlo con IA</div>
+        <div style="font-size:12px;margin-top:6px">Claude extraerá automáticamente todos los campos</div>
+      </div>
+      <input type="file" id="ocrInput" style="display:none">
+      <div style="margin-top:16px;padding:12px;background:var(--accent-dim);border:1px solid rgba(6,182,212,0.2);border-radius:8px">
+        <span class="ai-badge">Claude AI</span>
+        <span style="font-size:13px;margin-left:8px">Extrae período, código NC8, flujo, valor estadístico, peso, expedidor y más</span>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modalOCR')">Cancelar</button>
+      <button class="btn btn-primary" onclick="alert('Procesando con IA...');closeModal(\'modalOCR\')">Procesar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Nuevo Intrastat Modal -->
+<div id="modalNuevoIntrastat" class="modal-overlay" onclick="closeOnBackdrop(event,'modalNuevoIntrastat')">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <span class="modal-title">Nuevo Registro Intrastat</span>
+      <button class="modal-close" onclick="closeModal('modalNuevoIntrastat')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group"><label>Período</label><input type="text" class="form-control" id="fi_periodo" placeholder="2024-Q4"></div>
+        <div class="form-group"><label>Flujo</label><select class="form-control" id="fi_flujo"><option>EXPEDICIÓN</option><option>INTRODUCCIÓN</option></select></div>
+        <div class="form-group"><label>País Origen</label><input type="text" class="form-control" id="fi_origen" placeholder="DE"></div>
+        <div class="form-group"><label>País Destino</label><input type="text" class="form-control" id="fi_destino" placeholder="ES"></div>
+        <div class="form-group"><label>Código NC8</label><input type="text" class="form-control" id="fi_nc8" placeholder="87032310"></div>
+        <div class="form-group"><label>Descripción</label><input type="text" class="form-control" id="fi_descripcion"></div>
+        <div class="form-group"><label>Unidades</label><input type="number" class="form-control" id="fi_unidades"></div>
+        <div class="form-group"><label>Valor Estadístico (€)</label><input type="text" class="form-control" id="fi_valor"></div>
+        <div class="form-group"><label>Peso neto (kg)</label><input type="number" class="form-control" id="fi_peso"></div>
+        <div class="form-group"><label>Expedidor</label><input type="text" class="form-control" id="fi_expedidor"></div>
+        <div class="form-group"><label>Condición entrega</label><select class="form-control" id="fi_condicion"><option>EXW</option><option>FCA</option><option>CPT</option><option>CIP</option><option>DAP</option><option>DDP</option></select></div>
+        <div class="form-group"><label>Modo transporte</label><select class="form-control" id="fi_transporte"><option>1 - Marítimo</option><option>3 - Carretera</option><option>4 - Aéreo</option><option>5 - Postal</option></select></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modalNuevoIntrastat')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveIntrastat()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== DATA =====
+let duasData = [
+  {id:1,numeroDUA:'DUA-2024-0045',cliente:'AUTOESPAÑA SL',mercancia:'BMW Serie 3',unidades:30,valor:'€890.000',estado:'DESPACHADO',fecha:'2024-11-15'},
+  {id:2,numeroDUA:'DUA-2024-0046',cliente:'MERCEDES IMPORT SL',mercancia:'Clase C',unidades:15,valor:'€450.000',estado:'EN_TRAMITE',fecha:'2024-11-18'},
+  {id:3,numeroDUA:'DUA-2024-0047',cliente:'AUDI ESPAÑA SA',mercancia:'Repuestos',unidades:500,valor:'€125.000',estado:'PENDIENTE',fecha:'2024-11-20'},
+  {id:4,numeroDUA:'DUA-2024-0048',cliente:'VOLVO TRUCKS ES',mercancia:'Volvo FH',unidades:8,valor:'€2.100.000',estado:'BORRADOR',fecha:'2024-11-21'},
+];
+
+let docsData = [
+  {id:1,nombre:'DUA_AUTOESPANA_0045.pdf',tipo:'DUA',estado:'PROCESADO',tamano:'1.2 MB',fecha:'2024-11-15'},
+  {id:2,nombre:'FACTURA_MERCEDES_0046.xml',tipo:'Factura Comercial',estado:'PENDIENTE',tamano:'86 KB',fecha:'2024-11-18'},
+  {id:3,nombre:'PACKING_AUDI_0047.xlsx',tipo:'Packing List',estado:'PENDIENTE',tamano:'340 KB',fecha:'2024-11-20'},
+  {id:4,nombre:'BL_VOLVO_0048.pdf',tipo:'Conocimiento Embarque',estado:'ERROR',tamano:'2.1 MB',fecha:'2024-11-21'},
+];
+
+let lameData = [
+  {id:1,numero:'LAME-001',tipo:'ENTRADA',referencia:'DUA-2024-0045',producto:'BMW Serie 3',unidades:50,fecha:'2024-11-15',estado:'CONFIRMADO'},
+  {id:2,numero:'LAME-002',tipo:'SALIDA',referencia:'DUA-2024-0045',producto:'BMW Serie 3',unidades:20,fecha:'2024-11-16',estado:'CONFIRMADO'},
+  {id:3,numero:'LAME-003',tipo:'ENTRADA',referencia:'DUA-2024-0046',producto:'Mercedes Clase C',unidades:15,fecha:'2024-11-18',estado:'PENDIENTE'},
+  {id:4,numero:'LAME-004',tipo:'AJUSTE',referencia:'DUA-2024-0047',producto:'Repuestos Audi',unidades:-5,fecha:'2024-11-20',estado:'REVISION'},
+];
+
+let stockData = [
+  {id:1,ref:'BMW-X5-2024',descripcion:'BMW X5 xDrive30d 2024',disponible:30,total:50,dua:'DUA-2024-0045'},
+  {id:2,ref:'MERC-C200-2024',descripcion:'Mercedes Clase C 200d 2024',disponible:25,total:25,dua:'DUA-2024-0046'},
+  {id:3,ref:'AUDI-REPUESTOS-01',descripcion:'Repuestos Audi varios',disponible:0,total:500,dua:'DUA-2024-0047'},
+  {id:4,ref:'VOLVO-FH-001',descripcion:'Volvo FH 500 Globetrotter',disponible:2,total:8,dua:'DUA-2024-0048'},
+];
+
+let intrastatData = [
+  {id:1,periodo:'2024-Q4',origen:'DE',destino:'ES',nc8:'87032310',descripcion:'Automóviles cilindrada 1500-3000cc',unidades:30,valor:'€890.000',expedidor:'AUTOESPAÑA SL',estado:'VALIDADO'},
+  {id:2,periodo:'2024-Q4',origen:'DE',destino:'ES',nc8:'87032290',descripcion:'Automóviles cilindrada hasta 1500cc',unidades:15,valor:'€450.000',expedidor:'MERCEDES IMPORT SL',estado:'PENDIENTE'},
+  {id:3,periodo:'2024-Q4',origen:'DE',destino:'ES',nc8:'87089999',descripcion:'Partes y accesorios vehículos',unidades:500,valor:'€125.000',expedidor:'AUDI ESPAÑA SA',estado:'BORRADOR'},
+];
+
+let currentDespachoId = null;
+let duaFilter = 'all';
+
+// ===== NAVIGATE =====
+const sectionTitles = {dashboard:'Dashboard',documentos:'Documentos',duas:'DUAs',lame:'LAME / DVD',deposito:'Depósito',intrastat:'Intrastat',config:'Configuración'};
+function navigate(id) {
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('sec-'+id).classList.add('active');
+  document.querySelector(`[onclick="navigate('${id}')"]`).classList.add('active');
+  document.getElementById('headerTitle').textContent = sectionTitles[id]||id;
+  if(id==='duas') renderDUAs();
+  if(id==='documentos') renderDocs();
+  if(id==='lame') renderLAME();
+  if(id==='deposito') renderDeposito();
+  if(id==='intrastat') renderIntrastat();
+}
+
+// ===== MODALS =====
+function openModal(id){document.getElementById(id).classList.add('open')}
+function closeModal(id){document.getElementById(id).classList.remove('open')}
+function closeOnBackdrop(e,id){if(e.target===document.getElementById(id))closeModal(id)}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.modal-overlay.open').forEach(m=>m.classList.remove('open'))});
+
+// ===== BADGE HELPERS =====
+function statusBadge(s){
+  const map={DESPACHADO:'success',COMPLETADO:'success',CONFIRMADO:'success',VALIDADO:'success',EN_TRAMITE:'info',PENDIENTE:'warning',REVISION:'warning',BORRADOR:'neutral',ERROR:'error'};
+  return `<span class="badge badge-${map[s]||'neutral'}">${s.replace('_',' ')}</span>`;
+}
+function tipoColor(t){return{ENTRADA:'success',SALIDA:'error',AJUSTE:'warning',RESERVA:'info'}[t]||'neutral'}
+
+// ===== DOCS =====
+function renderDocs(){
+  document.getElementById('docsBody').innerHTML = docsData.map(d=>`
+    <tr>
+      <td><span style="font-weight:500">${d.nombre}</span></td>
+      <td><span class="badge badge-neutral">${d.tipo}</span></td>
+      <td>${statusBadge(d.estado)}</td>
+      <td class="text-muted">${d.tamano}</td>
+      <td class="text-muted">${d.fecha}</td>
+      <td><button class="btn btn-ghost btn-sm" onclick="showDocDetail(${d.id})">Ver datos</button></td>
+    </tr>`).join('');
+}
+function showDocDetail(id){
+  const d = docsData.find(x=>x.id===id);
+  document.getElementById('docDetailGrid').innerHTML = [
+    ['Nombre',d.nombre],['Tipo',d.tipo],['Estado',d.estado],['Tamaño',d.tamano],['Fecha',d.fecha],
+    ['NIF Emisor','A28123456'],['Número DUA','DUA-2024-0045'],['Valor Total','€890.000'],['País Origen','DE'],['Régimen','4000']
+  ].map(([k,v])=>`<div class="info-item"><div class="info-key">${k}</div><div class="info-val">${v}</div></div>`).join('');
+  openModal('modalDocDetail');
+}
+function processDoc(){
+  const name = document.getElementById('fileInfo').textContent || 'documento.pdf';
+  const type = document.getElementById('docType').value;
+  docsData.unshift({id:Date.now(),nombre:name||'nuevo-doc.pdf',tipo:type,estado:'PROCESADO',tamano:'0.5 MB',fecha:new Date().toISOString().slice(0,10)});
+  closeModal('modalUpload');
+  renderDocs();
+}
+function handleFileSelect(input){
+  if(input.files[0]){const f=input.files[0];const fi=document.getElementById('fileInfo');fi.style.display='block';fi.textContent=`📄 ${f.name} (${(f.size/1024).toFixed(0)} KB)`;}
+}
+function handleDrop(e){e.preventDefault();document.getElementById('dropZone').classList.remove('drag-over');if(e.dataTransfer.files[0]){const f=e.dataTransfer.files[0];const fi=document.getElementById('fileInfo');fi.style.display='block';fi.textContent=`📄 ${f.name} (${(f.size/1024).toFixed(0)} KB)`;}}
+
+// ===== DUAS =====
+function renderDUAs(data){
+  const rows = (data||duasData).filter(d=>duaFilter==='all'||d.estado===duaFilter);
+  document.getElementById('duasBody').innerHTML = rows.map(d=>`
+    <tr id="dua-row-${d.id}">
+      <td><span class="mono">${d.numeroDUA}</span></td>
+      <td>${d.cliente}</td>
+      <td>${d.mercancia}</td>
+      <td>${d.unidades}</td>
+      <td>${d.valor}</td>
+      <td><select class="status-select" onchange="changeDUAStatus(${d.id},this.value)">${['BORRADOR','PENDIENTE','EN_TRAMITE','DESPACHADO'].map(s=>`<option${s===d.estado?' selected':''}>${s}</option>`).join('')}</select></td>
+      <td class="text-muted">${d.fecha}</td>
+      <td><button class="btn btn-ghost btn-sm" onclick="editDUA(${d.id})">Editar</button></td>
+    </tr>`).join('');
+}
+function filterDUAs(f,btn){duaFilter=f;document.querySelectorAll('#sec-duas .filter-pill').forEach(p=>p.classList.remove('active'));btn.classList.add('active');renderDUAs();}
+function searchDUAs(q){const r=duasData.filter(d=>d.numeroDUA.toLowerCase().includes(q.toLowerCase())||d.cliente.toLowerCase().includes(q.toLowerCase())||d.mercancia.toLowerCase().includes(q.toLowerCase()));renderDUAs(r);}
+function changeDUAStatus(id,val){const d=duasData.find(x=>x.id===id);if(d)d.estado=val;}
+function saveDUA(){
+  const d={id:Date.now(),numeroDUA:document.getElementById('f_numeroDUA').value||'DUA-2024-NEW',cliente:document.getElementById('f_cliente').value||'Cliente',mercancia:document.getElementById('f_mercancia').value||'Mercancía',unidades:parseInt(document.getElementById('f_unidades').value)||0,valor:'€'+document.getElementById('f_valor').value,estado:document.getElementById('f_estadoDUA').value,fecha:new Date().toISOString().slice(0,10)};
+  duasData.push(d);closeModal('modalNuevoDUA');renderDUAs();
+}
+function editDUA(id){
+  const d=duasData.find(x=>x.id===id);
+  if(!d)return;
+  document.getElementById('duaModalTitle').textContent='Editar DUA';
+  document.getElementById('f_numeroDUA').value=d.numeroDUA;
+  document.getElementById('f_cliente').value=d.cliente;
+  document.getElementById('f_mercancia').value=d.mercancia;
+  document.getElementById('f_unidades').value=d.unidades;
+  document.getElementById('f_valor').value=d.valor.replace('€','');
+  openModal('modalNuevoDUA');
+}
+
+// ===== LAME =====
+let lameFilter='all';
+function renderLAME(data){
+  const rows=(data||lameData).filter(d=>lameFilter==='all'||d.tipo===lameFilter);
+  document.getElementById('lameBody').innerHTML=rows.map(d=>`
+    <tr>
+      <td><span class="mono">${d.numero}</span></td>
+      <td><span class="badge badge-${tipoColor(d.tipo)}">${d.tipo}</span></td>
+      <td class="text-muted">${d.referencia}</td>
+      <td>${d.producto}</td>
+      <td style="color:${d.unidades<0?'var(--error)':'var(--success)'}">${d.unidades>0?'+':''}${d.unidades}</td>
+      <td class="text-muted">${d.fecha}</td>
+      <td>${statusBadge(d.estado)}</td>
+      <td><button class="btn btn-ghost btn-sm">Editar</button></td>
+    </tr>`).join('');
+}
+function filterLAME(f,btn){lameFilter=f;document.querySelectorAll('#sec-lame .filter-pill').forEach(p=>p.classList.remove('active'));btn.classList.add('active');renderLAME();}
+function saveLAME(){
+  lameData.push({id:Date.now(),numero:document.getElementById('fl_numero').value||'LAME-NEW',tipo:document.getElementById('fl_tipo').value,referencia:document.getElementById('fl_referencia').value,producto:document.getElementById('fl_producto').value,unidades:parseInt(document.getElementById('fl_unidades').value)||0,fecha:document.getElementById('fl_fecha').value||new Date().toISOString().slice(0,10),estado:'PENDIENTE'});
+  closeModal('modalNuevoLAME');renderLAME();
+}
+
+// ===== DEPOSITO =====
+function renderDeposito(){
+  document.getElementById('depositoBody').innerHTML=stockData.map(s=>{
+    const pct=s.total>0?Math.round(s.disponible/s.total*100):0;
+    const cls=pct===0?'error':pct<30?'warning':'';
+    const est=pct===0?'<span class="badge badge-error">Agotado</span>':pct<30?'<span class="badge badge-warning">Bajo</span>':'<span class="badge badge-success">OK</span>';
+    return `<tr>
+      <td><span class="mono">${s.ref}</span></td>
+      <td>${s.descripcion}</td>
+      <td>${s.disponible} / ${s.total}</td>
+      <td style="min-width:140px"><div style="display:flex;align-items:center;gap:8px"><div class="progress-bar" style="flex:1"><div class="progress-fill ${cls}" style="width:${pct}%"></div></div><span class="text-sm text-muted">${pct}%</span></div></td>
+      <td>${est}</td>
+      <td class="mono">${s.dua}</td>
+      <td><button class="btn btn-sm btn-outline" onclick="openDespacho(${s.id})">Despachar</button></td>
+    </tr>`;
+  }).join('');
+}
+function openDespacho(id){
+  currentDespachoId=id;
+  const s=stockData.find(x=>x.id===id);
+  document.getElementById('despachoInfo').innerHTML=`
+    <div class="info-item"><div class="info-key">Referencia</div><div class="info-val">${s.ref}</div></div>
+    <div class="info-item"><div class="info-key">Descripción</div><div class="info-val">${s.descripcion}</div></div>
+    <div class="info-item"><div class="info-key">DUA</div><div class="info-val">${s.dua}</div></div>
+    <div class="info-item"><div class="info-key">Disponible</div><div class="info-val" style="color:var(--success)">${s.disponible} uds.</div></div>`;
+  document.getElementById('stockBreakdown').innerHTML=`
+    <div class="flex justify-between"><span>Total en depósito:</span><span>${s.total} uds.</span></div>
+    <div class="flex justify-between"><span>Disponible:</span><span style="color:var(--success)">${s.disponible} uds.</span></div>
+    <div class="flex justify-between"><span>Reservado:</span><span style="color:var(--warning)">${s.total-s.disponible} uds.</span></div>`;
+  document.getElementById('despachoUnidades').value='';
+  document.getElementById('despachoWarning').style.display='none';
+  openModal('modalDespacho');
+}
+function validateDespacho(){
+  const s=stockData.find(x=>x.id===currentDespachoId);
+  const v=parseInt(document.getElementById('despachoUnidades').value)||0;
+  document.getElementById('despachoWarning').style.display=v>s.disponible?'block':'none';
+  document.getElementById('btnEjecutarDespacho').disabled=v>s.disponible||v<=0;
+}
+function executeDespacho(){
+  const s=stockData.find(x=>x.id===currentDespachoId);
+  const v=parseInt(document.getElementById('despachoUnidades').value)||0;
+  if(v>0&&v<=s.disponible){s.disponible-=v;closeModal('modalDespacho');renderDeposito();}
+}
+
+// ===== INTRASTAT =====
+function renderIntrastat(){
+  document.getElementById('intrastatBody').innerHTML=intrastatData.map(r=>`
+    <tr>
+      <td class="text-muted">${r.periodo}</td>
+      <td>${r.origen} → ${r.destino}</td>
+      <td><span class="mono">${r.nc8}</span></td>
+      <td>${r.descripcion}</td>
+      <td>${r.unidades}</td>
+      <td>${r.valor}</td>
+      <td>${r.expedidor}</td>
+      <td>${statusBadge(r.estado)}</td>
+      <td><button class="btn btn-ghost btn-sm">Editar</button></td>
+    </tr>`).join('');
+}
+function saveIntrastat(){
+  intrastatData.push({id:Date.now(),periodo:document.getElementById('fi_periodo').value||'2024-Q4',origen:document.getElementById('fi_origen').value,destino:document.getElementById('fi_destino').value,nc8:document.getElementById('fi_nc8').value,descripcion:document.getElementById('fi_descripcion').value,unidades:parseInt(document.getElementById('fi_unidades').value)||0,valor:'€'+document.getElementById('fi_valor').value,expedidor:document.getElementById('fi_expedidor').value,estado:'BORRADOR'});
+  closeModal('modalNuevoIntrastat');renderIntrastat();
+}
+function exportIntrastatCSV(){
+  const hdr='Período,Origen,Destino,NC8,Descripción,Unidades,Valor,Expedidor,Estado\n';
+  const rows=intrastatData.map(r=>`${r.periodo},${r.origen},${r.destino},${r.nc8},"${r.descripcion}",${r.unidades},"${r.valor}","${r.expedidor}",${r.estado}`).join('\n');
+  const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(hdr+rows);a.download='intrastat.csv';a.click();
+}
+
+// ===== TABS =====
+function switchTab(tabId,btn){
+  document.querySelectorAll('#sec-config .tab-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('#sec-config .tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(tabId).classList.add('active');
+  btn.classList.add('active');
+}
+
+// ===== CHARTS =====
+const chartDefaults={color:'rgba(255,255,255,0.7)',borderColor:'rgba(255,255,255,0.1)',font:{family:'system-ui',size:11}};
+Chart.defaults.color=chartDefaults.color;
+Chart.defaults.font=chartDefaults.font;
+const months=['Jun','Jul','Aug','Sep','Oct','Nov'];
+
+new Chart(document.getElementById('areaChart'),{
+  type:'line',
+  data:{
+    labels:months,
+    datasets:[
+      {label:'DUAs',data:[12,19,15,22,18,25],borderColor:'#06b6d4',backgroundColor:'rgba(6,182,212,0.1)',fill:true,tension:.4,pointRadius:3,pointBackgroundColor:'#06b6d4'},
+      {label:'LAMEs',data:[8,14,10,18,14,20],borderColor:'#8b5cf6',backgroundColor:'rgba(139,92,246,0.1)',fill:true,tension:.4,pointRadius:3,pointBackgroundColor:'#8b5cf6'},
+      {label:'Intrastat',data:[5,8,6,10,9,12],borderColor:'#10b981',backgroundColor:'rgba(16,185,129,0.1)',fill:true,tension:.4,pointRadius:3,pointBackgroundColor:'#10b981'},
+    ]
+  },
+  options:{responsive:true,plugins:{legend:{position:'top',labels:{boxWidth:10,padding:15}}},scales:{x:{grid:{color:'rgba(255,255,255,0.05)'}},y:{grid:{color:'rgba(255,255,255,0.05)'},beginAtZero:true}}}
+});
+
+new Chart(document.getElementById('doughnutChart'),{
+  type:'doughnut',
+  data:{
+    labels:['Disponible','Reservado','Despachado'],
+    datasets:[{data:[1247,312,3021],backgroundColor:['rgba(6,182,212,0.8)','rgba(245,158,11,0.8)','rgba(16,185,129,0.8)'],borderColor:['#06b6d4','#f59e0b','#10b981'],borderWidth:2}]
+  },
+  options:{responsive:true,plugins:{legend:{position:'bottom',labels:{padding:16,boxWidth:12}}},cutout:'65%'}
+});
+
+const days=['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+new Chart(document.getElementById('barChart'),{
+  type:'bar',
+  data:{
+    labels:days,
+    datasets:[
+      {label:'Entradas',data:[8,12,6,14,10,4,2],backgroundColor:'rgba(6,182,212,0.7)',borderRadius:4},
+      {label:'Salidas',data:[5,8,4,9,7,2,1],backgroundColor:'rgba(239,68,68,0.6)',borderRadius:4},
+    ]
+  },
+  options:{responsive:true,plugins:{legend:{position:'top',labels:{boxWidth:10,padding:15}}},scales:{x:{grid:{color:'rgba(255,255,255,0.05)'}},y:{grid:{color:'rgba(255,255,255,0.05)'},beginAtZero:true},stacked:false}}
+});
+
+// ===== INIT =====
+renderDUAs();renderDocs();renderLAME();renderDeposito();renderIntrastat();
+</script>
+</body>
+</html>

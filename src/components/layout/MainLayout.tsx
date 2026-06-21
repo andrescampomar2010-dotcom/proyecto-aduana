@@ -3,11 +3,11 @@ import { Header } from "./Header";
 
 export function MainLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-[#080b12]">
+    <div className="min-h-screen bg-[#080b12] grid-bg radial-glow">
       <Sidebar />
       <Header />
       <main className="ml-64 pt-16 min-h-screen">
-        <div className="p-6">{children}</div>
+        <div className="p-6 fade-in">{children}</div>
       </main>
     </div>
   );
