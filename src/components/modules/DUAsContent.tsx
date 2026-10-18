@@ -73,7 +73,7 @@ const emptyForm = (): Partial<DUARecord> => ({
 
 export function DUAsContent() {
   const [duas, setDuas] = useState<DUARecord[]>(MOCK_DUAS);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
   const [showForm, setShowForm] = useState(false);
@@ -82,16 +82,28 @@ export function DUAsContent() {
   const [saving, setSaving] = useState(false);
   const [alert, setAlert] = useState<{ type: "success" | "error"; msg: string } | null>(null);
 
-  const loadDUAs = useCallback(async () => {
-    setLoading(true);
+  const fetchDUAs = useCallback(async (): Promise<DUARecord[] | null> => {
     try {
       const r = await fetch("/api/duas");
       const d = await r.json();
-      if (d.success && d.data?.length) setDuas(d.data);
-    } catch { /* use mock */ } finally { setLoading(false); }
+      return d.success && d.data?.length ? d.data : null;
+    } catch { return null; }
   }, []);
 
-  useEffect(() => { loadDUAs(); }, [loadDUAs]);
+  const loadDUAs = useCallback(async () => {
+    const data = await fetchDUAs();
+    if (data) setDuas(data);
+  }, [fetchDUAs]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const data = await fetchDUAs();
+      if (!cancelled && data) setDuas(data);
+      if (!cancelled) setLoading(false);
+    })();
+    return () => { cancelled = true; };
+  }, [fetchDUAs]);
 
   const filtered = duas.filter((d) => {
     const matchSearch = !search || d.numeroDUA.toLowerCase().includes(search.toLowerCase()) ||

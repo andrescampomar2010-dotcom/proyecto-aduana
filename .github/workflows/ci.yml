@@ -1,0 +1,26 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    name: Lint and build
+    runs-on: ubuntu-latest
+    env:
+      # Placeholder values: the build only needs the variables to be defined,
+      # it never connects to a database or the Claude API.
+      DATABASE_URL: postgresql://user:password@localhost:5432/aduana_saas
+      ANTHROPIC_API_KEY: ci-placeholder
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run build

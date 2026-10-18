@@ -82,7 +82,7 @@ const emptyForm = (): Partial<IntrastatRecord> => ({
 
 export function IntrastatContent() {
   const [records, setRecords] = useState<IntrastatRecord[]>(MOCK_INTRASTAT);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filterPeriodo, setFilterPeriodo] = useState("");
   const [showForm, setShowForm] = useState(false);
@@ -94,16 +94,28 @@ export function IntrastatContent() {
   const [ocrLoading, setOcrLoading] = useState(false);
   const [alert, setAlert] = useState<{ type: "success" | "error"; msg: string } | null>(null);
 
-  const loadRecords = useCallback(async () => {
-    setLoading(true);
+  const fetchRecords = useCallback(async (): Promise<IntrastatRecord[] | null> => {
     try {
       const r = await fetch("/api/intrastat");
       const d = await r.json();
-      if (d.success && d.data?.length) setRecords(d.data);
-    } catch { /* use mock */ } finally { setLoading(false); }
+      return d.success && d.data?.length ? d.data : null;
+    } catch { return null; }
   }, []);
 
-  useEffect(() => { loadRecords(); }, [loadRecords]);
+  const loadRecords = useCallback(async () => {
+    const data = await fetchRecords();
+    if (data) setRecords(data);
+  }, [fetchRecords]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const data = await fetchRecords();
+      if (!cancelled && data) setRecords(data);
+      if (!cancelled) setLoading(false);
+    })();
+    return () => { cancelled = true; };
+  }, [fetchRecords]);
 
   const filtered = records.filter((r) => {
     const matchSearch = !search ||

@@ -142,7 +142,7 @@ export function ConfiguracionContent() {
               activeTab === i ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/20" : "text-slate-400 hover:text-white"
             }`}
           >
-            {[<Key className="w-3.5 h-3.5" />, <Sliders className="w-3.5 h-3.5" />, <Settings className="w-3.5 h-3.5" />, <Users className="w-3.5 h-3.5" />][i]}
+            {[<Key key="api" className="w-3.5 h-3.5" />, <Sliders key="ocr" className="w-3.5 h-3.5" />, <Settings key="rules" className="w-3.5 h-3.5" />, <Users key="users" className="w-3.5 h-3.5" />][i]}
             {tab}
           </button>
         ))}

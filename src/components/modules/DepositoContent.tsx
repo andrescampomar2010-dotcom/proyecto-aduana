@@ -55,7 +55,7 @@ const emptyStock = (): Partial<StockItem> => ({
 
 export function DepositoContent() {
   const [stock, setStock] = useState<StockItem[]>(MOCK_STOCK);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filterActivo, setFilterActivo] = useState<"" | "true" | "false">("");
   const [showForm, setShowForm] = useState(false);
@@ -68,16 +68,28 @@ export function DepositoContent() {
   const [crossResult, setCrossResult] = useState<{ success: boolean; message: string; discrepancia?: boolean } | null>(null);
   const [alert, setAlert] = useState<{ type: "success" | "error" | "warning"; msg: string } | null>(null);
 
-  const loadStock = useCallback(async () => {
-    setLoading(true);
+  const fetchStock = useCallback(async (): Promise<StockItem[] | null> => {
     try {
       const r = await fetch("/api/deposito");
       const d = await r.json();
-      if (d.success && d.data?.length) setStock(d.data);
-    } catch { /* use mock */ } finally { setLoading(false); }
+      return d.success && d.data?.length ? d.data : null;
+    } catch { return null; }
   }, []);
 
-  useEffect(() => { loadStock(); }, [loadStock]);
+  const loadStock = useCallback(async () => {
+    const data = await fetchStock();
+    if (data) setStock(data);
+  }, [fetchStock]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const data = await fetchStock();
+      if (!cancelled && data) setStock(data);
+      if (!cancelled) setLoading(false);
+    })();
+    return () => { cancelled = true; };
+  }, [fetchStock]);
 
   const filtered = stock.filter((s) => {
     const matchSearch = !search ||

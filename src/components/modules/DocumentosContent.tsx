@@ -62,33 +62,43 @@ export function DocumentosContent() {
   const [dragOver, setDragOver] = useState(false);
   const [alert, setAlert] = useState<{ type: "success" | "error"; msg: string } | null>(null);
 
-  const loadDocuments = useCallback(async () => {
-    setLoading(true);
+  const fetchDocuments = useCallback(async (): Promise<DocumentRecord[]> => {
     try {
       const r = await fetch("/api/documentos");
       const d = await r.json();
-      if (d.success) setDocuments(d.data || []);
-    } catch {
-      // use mock data for demo
-      setDocuments(MOCK_DOCS);
-    } finally {
-      setLoading(false);
-    }
+      if (d.success) return d.data || [];
+    } catch { /* fall through to mock data for demo */ }
+    return MOCK_DOCS;
   }, []);
 
-  useEffect(() => { loadDocuments(); }, [loadDocuments]);
+  const loadDocuments = useCallback(async () => {
+    setDocuments(await fetchDocuments());
+  }, [fetchDocuments]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const data = await fetchDocuments();
+      if (!cancelled) {
+        setDocuments(data);
+        setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [fetchDocuments]);
+
+
+  const addFiles = (newFiles: File[]) => {
+    const uploadFiles: UploadFile[] = newFiles.map((f) => ({ file: f, progress: 0, status: "pending" }));
+    setFiles((prev) => [...prev, ...uploadFiles]);
+  };
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setDragOver(false);
     const dropped = Array.from(e.dataTransfer.files);
     addFiles(dropped);
-  }, []);
-
-  const addFiles = (newFiles: File[]) => {
-    const uploadFiles: UploadFile[] = newFiles.map((f) => ({ file: f, progress: 0, status: "pending" }));
-    setFiles((prev) => [...prev, ...uploadFiles]);
-  };
+  }, [addFiles]);
 
   const removeFile = (idx: number) => {
     setFiles((prev) => prev.filter((_, i) => i !== idx));

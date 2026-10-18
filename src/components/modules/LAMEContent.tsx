@@ -54,7 +54,7 @@ const emptyForm = (): Partial<LAMERecord> => ({
 
 export function LAMEContent() {
   const [lames, setLames] = useState<LAMERecord[]>(MOCK_LAMES);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filterTipo, setFilterTipo] = useState("");
   const [showForm, setShowForm] = useState(false);
@@ -63,16 +63,28 @@ export function LAMEContent() {
   const [saving, setSaving] = useState(false);
   const [alert, setAlert] = useState<{ type: "success" | "error"; msg: string } | null>(null);
 
-  const loadLAMEs = useCallback(async () => {
-    setLoading(true);
+  const fetchLAMEs = useCallback(async (): Promise<LAMERecord[] | null> => {
     try {
       const r = await fetch("/api/lame");
       const d = await r.json();
-      if (d.success && d.data?.length) setLames(d.data);
-    } catch { /* use mock */ } finally { setLoading(false); }
+      return d.success && d.data?.length ? d.data : null;
+    } catch { return null; }
   }, []);
 
-  useEffect(() => { loadLAMEs(); }, [loadLAMEs]);
+  const loadLAMEs = useCallback(async () => {
+    const data = await fetchLAMEs();
+    if (data) setLames(data);
+  }, [fetchLAMEs]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const data = await fetchLAMEs();
+      if (!cancelled && data) setLames(data);
+      if (!cancelled) setLoading(false);
+    })();
+    return () => { cancelled = true; };
+  }, [fetchLAMEs]);
 
   const filtered = lames.filter((l) => {
     const matchSearch = !search ||
